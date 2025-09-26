@@ -1,0 +1,60 @@
+<div class="w-full h-full flex flex-col p-5 text-center shadow">
+    <p-message severity="secondary">
+        <ng-template #icon>
+            <div class="w-full flex flex-row-reverse items-center justify-between font-bold">
+                <div class="pi pi-sparkles" style="color: #FD9A30"></div>
+                <div>Bosquejo <span class="font-normal text-sm">v1.0.0</span></div>
+            </div>
+        </ng-template>
+    </p-message>
+
+    <div class="flex flex-col gap-6 mt-10">
+        <p-floatlabel>
+            <div class="card flex justify-center">
+                <p-select id="categories" [options]="categories" [(ngModel)]="selectedCategory" optionLabel="name"
+                    class="w-full" />
+            </div>
+            <label for="categories">Categorías</label>
+        </p-floatlabel>
+
+        <div class="w-full">
+            <div class="w-full text-start text-sm ml-3 mb-1 text-gray-500">Imagen <span
+                    class="text-red-500 text-[0.7rem]">(Ancho: 210
+                    x Alto: 95mm)</span>
+            </div>
+            <p-fileupload class="" name="myfile[]" url="https://www.primefaces.org/cdn/api/upload.php"
+                [multiple]="false" accept="image/*" maxFileSize="1000000">
+                <ng-template #header let-files let-chooseCallback="chooseCallback" let-clearCallback="clearCallback"
+                    let-uploadCallback="uploadCallback">
+                    <div class="w-full flex flex-row gap-4 items-center">
+                        <p-progressbar value="35" [showValue]="false" class="w-full"
+                            styleClass="md:w-20rem h-1 w-full md:ml-auto">
+                        </p-progressbar>
+                        <p-button icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger"
+                            [disabled]="!files || files.length === 0" />
+                    </div>
+                </ng-template>
+                <ng-template #content let-files let-uploadedFiles="uploadedFiles"
+                    let-removeFileCallback="removeFileCallback"
+                    let-removeUploadedFileCallback="removeUploadedFileCallback">
+                    <div class="flex flex-col">
+                    </div>
+                </ng-template>
+                <ng-template #file></ng-template>
+                <ng-template #empty>
+                    <div
+                        class="flex flex-col items-center justify-center border-2 border-dotted rounded-2xl p-5 shadow">
+                        <i class="pi pi-cloud-upload !border-2 !rounded-full !p-4 !text-[1.5rem] !text-muted-color"></i>
+                        <p class="mt-6 mb-0">Arrastra o abre tu imagen.</p>
+                    </div>
+                </ng-template>
+            </p-fileupload>
+        </div>
+
+        <div>
+            <p-splitbutton label="Descargar mockup" [model]="downloadOptions" />
+        </div>
+    </div>
+
+
+</div>
