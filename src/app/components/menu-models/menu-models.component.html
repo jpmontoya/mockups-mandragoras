@@ -1,8 +1,11 @@
 <div class="w-full h-full p-2 px-5 shadow-2xl overflow-x-scroll">
     <div class="flex flex-row gap-5 min-w-max">
-        <div class="relative h-full w-36 rounded bg-white overflow-hidden shadow hover:bg-gray-800 cursor-pointer">
-            <p-image class="h-full" src="models-preview/preview-lata.png" alt="Lata Preview" />
+        @for (item of listModels; track item.previweRoute){
+        <div (click)="changeModel(item)"
+            [class]="'relative h-full w-36 rounded overflow-hidden shadow hover:bg-gray-800 cursor-pointer ' + ((selectedModel | async)?.previweRoute === item.previweRoute ? 'bg-gray-800' : 'bg-white')">
+            <p-image class="h-full" [src]="'models-preview/' + item.previweRoute" alt="Preview" />
             <span class="absolute bottom-0 right-3 text-gray-500 font-semibold">11oz</span>
         </div>
+        }
     </div>
 </div>

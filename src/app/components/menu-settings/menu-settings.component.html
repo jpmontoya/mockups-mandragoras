@@ -1,4 +1,4 @@
-<div class="w-full h-full flex flex-col p-5 text-center shadow">
+<div class="relative w-full h-full flex flex-col p-5 text-center shadow">
     <p-message severity="secondary">
         <ng-template #icon>
             <div class="w-full flex flex-row-reverse items-center justify-between font-bold">
@@ -8,14 +8,7 @@
         </ng-template>
     </p-message>
 
-    <div class="flex flex-col gap-6 mt-10">
-        <p-floatlabel>
-            <div class="card flex justify-center">
-                <p-select id="categories" [options]="categories" [(ngModel)]="selectedCategory" optionLabel="name"
-                    class="w-full" />
-            </div>
-            <label for="categories">Categorías</label>
-        </p-floatlabel>
+    <div class="flex flex-col gap-6 mt-5">
 
         <div class="w-full">
             <div class="w-full text-start text-sm ml-3 mb-1 text-gray-500">Imagen <span
@@ -51,7 +44,28 @@
             </p-fileupload>
         </div>
 
-        <div>
+        <p-floatlabel>
+            <div class="card flex justify-center">
+                <p-select id="categories" [options]="categories" [(ngModel)]="selectedCategory" optionLabel="name"
+                    class="w-full" />
+            </div>
+            <label for="categories">Categorías</label>
+        </p-floatlabel>
+
+        <div class="w-full">
+            <div class="w-full text-start text-sm ml-3 mb-1 text-gray-500">Apariencia
+            </div>
+            <div class="flex flex-row justify-between px-5">
+                <span class="text-gray-500 font-semibold">Color del Mug</span>
+                <div class="flex flex-row gap-2">
+                    <p-colorpicker [ngModel]="colorPickerBody | async" inputId="cp-hex"
+                        (onChange)="changeColorBody($event)" appendTo="body" />
+                    <span class="text-gray-500">{{ colorPickerBody | async }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute top-5 right-[105%] whitespace-nowrap">
             <p-splitbutton label="Descargar mockup" [model]="downloadOptions" />
         </div>
     </div>

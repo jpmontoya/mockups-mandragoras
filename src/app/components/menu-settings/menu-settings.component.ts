@@ -9,7 +9,11 @@ import { ButtonModule } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MenuItem, MessageService } from 'primeng/api';
 import { SplitButtonModule } from 'primeng/splitbutton';
+import { ColorPickerModule } from 'primeng/colorpicker';
 import { HttpClientModule } from '@angular/common/http';
+import { ColorsModelsService } from '../../services/colors-models/colors-models.service';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { CommonModule } from '@angular/common';
 
 interface Categories {
   name: string;
@@ -19,6 +23,7 @@ interface Categories {
 @Component({
   selector: 'app-menu-settings',
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     FormsModule,
     HttpClientModule,
@@ -30,7 +35,8 @@ interface Categories {
     ToastModule,
     ButtonModule,
     ProgressBarModule,
-    SplitButtonModule
+    SplitButtonModule,
+    ColorPickerModule
   ],
   templateUrl: './menu-settings.component.html',
   styleUrl: './menu-settings.component.css',
@@ -41,9 +47,16 @@ export class MenuSettingsComponent implements OnInit {
   categories: Categories[] | undefined;
   selectedCategory: Categories | undefined;
 
+  public colorPickerBody: Observable<String>;
+
   downloadOptions: MenuItem[];
 
-  constructor(private messageService: MessageService) {
+  constructor(
+    private messageService: MessageService,
+    private colorsModelsService: ColorsModelsService
+  ) {
+    this.colorPickerBody = this.colorsModelsService.getColorBody;
+
     this.categories = [
       { name: 'Mugs', code: 'mugs' },
       { name: 'Termos', code: 'RM' },
@@ -66,6 +79,10 @@ export class MenuSettingsComponent implements OnInit {
   }
 
   ngOnInit() {
+  }
+
+  changeColorBody(color: any) {
+    this.colorsModelsService.setColorBody = color.value;
   }
 
   upload(event: any) {
