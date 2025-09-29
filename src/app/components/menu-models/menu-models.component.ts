@@ -31,10 +31,10 @@ export class MenuModelsComponent {
       modelRoute: "Mug_11oz.glb",
       previweRoute: "preview-mug.png"
     },
-    {
-      modelRoute: "SodaCan_15oz.glb",
-      previweRoute: "preview-lata.png"
-    }
+    // {
+    //   modelRoute: "SodaCan_15oz.glb",
+    //   previweRoute: "preview-lata.png"
+    // }
   ]
 
   changeModel(model: any) {
