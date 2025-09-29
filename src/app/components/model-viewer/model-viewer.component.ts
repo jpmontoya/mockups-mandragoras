@@ -5,11 +5,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper.js';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter, Observable } from 'rxjs';
+import { filter, lastValueFrom, Observable } from 'rxjs';
 import { gsap } from 'gsap';
 import { ColorsModelsService } from '../../services/colors-models/colors-models.service';
 import { CommonModule } from '@angular/common';
 import { Models3dService } from '../../services/models-3d/models-3d.service';
+import { ImagesPrintingService } from '../../services/images-printing/images-printing.service';
 
 @Component({
   selector: 'app-model-viewer',
@@ -37,21 +38,27 @@ export class ModelViewerComponent implements AfterViewInit {
 
   public colorPickerBody: Observable<String>;
   public selectedModel: Observable<any>;
+  public imagePrinting: Observable<String>;
+
+  public imageSelected: string = "";
+  public modelSelected: any = "";
 
   private bodyMaterial = new THREE.MeshStandardMaterial({
     color: "#ffffff",
-    metalness: 0.1,
-    roughness: 0.5,
+    metalness: 0,
+    roughness: 0,
   });
 
   constructor(
     private window: Window,
     private router: Router,
     private colorsModelsService: ColorsModelsService,
-    private models3dService: Models3dService
+    private models3dService: Models3dService,
+    private imagesPrintingService: ImagesPrintingService
   ) {
     this.colorPickerBody = this.colorsModelsService.getColorBody;
     this.selectedModel = models3dService.getSelectedModel;
+    this.imagePrinting = imagesPrintingService.getImage;
 
     if (!this.window) {
       this.window = window;
@@ -94,7 +101,7 @@ export class ModelViewerComponent implements AfterViewInit {
   createRender(): any {
     const container3D = document.getElementById("container-model") as HTMLDivElement;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true });
+    const renderer = new THREE.WebGLRenderer({ alpha: true, preserveDrawingBuffer: true });
     renderer.setSize(container3D?.offsetWidth, container3D?.offsetHeight);
     renderer.shadowMap.enabled = true;
     document.getElementById('container3D')?.appendChild(renderer.domElement);
@@ -113,7 +120,7 @@ export class ModelViewerComponent implements AfterViewInit {
     ];
 
     canvases.forEach((canvas, i) => {
-      listRenderer.push(new THREE.WebGLRenderer({ canvas, alpha: true }));
+      listRenderer.push(new THREE.WebGLRenderer({ canvas, alpha: true, preserveDrawingBuffer: true }));
       listRenderer[i].setSize(200, 200, false);
     });
 
@@ -122,7 +129,7 @@ export class ModelViewerComponent implements AfterViewInit {
 
   async loadRoomModel(modelRoute: string): Promise<any> {
 
-    // let materialPrinting: any = await this.createSublimationPrinting();
+    let imagePrinting: any = await this.createSublimationPrinting();
 
     const loader = new GLTFLoader();
     const room3DModel: any = await new Promise((resolve, reject) => {
@@ -137,8 +144,12 @@ export class ModelViewerComponent implements AfterViewInit {
       node.castShadow = true;
       node.receiveShadow = true;
 
-      node.material = this.bodyMaterial;
+      if (node.isMesh && node.name === "Body") {
+        node.material = this.bodyMaterial;
+      }
     });
+
+    room3DModel.add(imagePrinting)
 
     return room3DModel;
   }
@@ -162,27 +173,53 @@ export class ModelViewerComponent implements AfterViewInit {
     })
   }
 
+  async reloadModel(room3DModel: any, scene: any) {
+    if (room3DModel) {
+      scene.remove(room3DModel);
+    }
+
+    room3DModel = await this.loadRoomModel(this.modelSelected.modelRoute);
+
+    const box = new THREE.Box3().setFromObject(room3DModel);
+    const center = new THREE.Vector3(0, (box.min.y + box.max.y) / 2, 0);
+    room3DModel.position.sub(center);
+
+    scene.add(room3DModel);
+  }
+
   async createSublimationPrinting(): Promise<any> {
-    let imagePrinting: THREE.Mesh | undefined;
     const loaderImagePrinting = new THREE.TextureLoader();
-    const material = await new Promise((resolve, reject) => {
-      loaderImagePrinting.load('estampado.png',
+    return await new Promise((resolve, reject) => {
+      loaderImagePrinting.load(this.imageSelected,
         function (texture) {
+
+          texture.wrapS = THREE.ClampToEdgeWrapping;
+          texture.wrapT = THREE.ClampToEdgeWrapping;
 
           const material = new THREE.MeshStandardMaterial(
             {
               map: texture,
               metalness: 0.1,
               roughness: 0.5,
+              transparent: true,
+              side: THREE.DoubleSide
             });
-          // const geometry = new THREE.PlaneGeometry(10, 14);
-          // imagePrinting = new THREE.Mesh(geometry, material);
-          // imagePrinting.position.set(-15, 45.2, -25.4);
-          resolve(material);
+
+          const radius = 41.3;
+          const height = 98.9;
+
+          const opening = THREE.MathUtils.degToRad(77.4);
+          const geometry = new THREE.CylinderGeometry(radius, radius, height, 64, 1, true, THREE.MathUtils.degToRad(129.2), 2 * Math.PI - opening);
+
+          const mesh = new THREE.Mesh(geometry, material);
+
+          mesh.rotation.y = Math.PI;
+
+          mesh.position.set(0, (height / 2) + 2.5, 0);
+          resolve(mesh);
         }
       );
     });
-    return material;
   }
 
   async managmentRoom() {
@@ -191,12 +228,6 @@ export class ModelViewerComponent implements AfterViewInit {
     const listRenderer = this.createRenderPreviews();
 
     let room3DModel: any;
-
-    // this.selectedModel.subscribe(async (value: any) => {
-    //   console.log(value);
-    //   room3DModel = await this.loadRoomModel(value.modelRoute);
-    //   scene.add(room3DModel);
-    // });
 
     const { ambientLight, directionalLight1, directionalLight2 } = this.createAmbientLights();
 
@@ -207,19 +238,12 @@ export class ModelViewerComponent implements AfterViewInit {
     directionalLight2.position.set(1, 2000, -2000);
     scene.add(this.primaryCamera)
 
-    // if (room3DModel) {
-    //   room3DModel.add(imagePoster);
-    // }
-
-    const listMesh: any = {
-      // imagePoster
-    };
-
     const controls = new OrbitControls(this.primaryCamera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.zoomSpeed = 0.5;
     controls.rotateSpeed = 0.8;
+    controls.enableDamping = false;
+    controls.enableZoom = false;
+    controls.enablePan = false;
+
 
     // const box = new THREE.Box3().setFromObject(room3DModel);
     // const center = new THREE.Vector3(0, (box.min.y + box.max.y) / 2, 0);
@@ -239,19 +263,14 @@ export class ModelViewerComponent implements AfterViewInit {
     }
     reRender3D();
 
+    this.imagePrinting.subscribe(async (value: any) => {
+      this.imageSelected = value;
+      this.reloadModel(room3DModel, scene);
+    })
+
     this.selectedModel.subscribe(async (value: any) => {
-      if (room3DModel) {
-        scene.remove(room3DModel); // quitar el anterior
-      }
-
-      room3DModel = await this.loadRoomModel(value.modelRoute);
-
-      // centrar
-      const box = new THREE.Box3().setFromObject(room3DModel);
-      const center = new THREE.Vector3(0, (box.min.y + box.max.y) / 2, 0);
-      room3DModel.position.sub(center);
-
-      scene.add(room3DModel);
+      this.modelSelected = value;
+      this.reloadModel(room3DModel, scene);
     });
   }
 }

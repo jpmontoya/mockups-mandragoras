@@ -11,32 +11,36 @@
     <div class="flex flex-col gap-6 mt-5">
 
         <div class="w-full">
-            <div class="w-full text-start text-sm ml-3 mb-1 text-gray-500">Imagen <span
-                    class="text-red-500 text-[0.7rem]">(Ancho: 210
-                    x Alto: 95mm)</span>
+            <div class="w-full text-start text-sm ml-3 mb-1 text-gray-500">Imagen
+                <!-- <span class="text-red-500 text-[0.7rem]">(Ancho: 210 x Alto: 95mm)</span> -->
             </div>
-            <p-fileupload class="" name="myfile[]" url="https://www.primefaces.org/cdn/api/upload.php"
-                [multiple]="false" accept="image/*" maxFileSize="1000000">
-                <ng-template #header let-files let-chooseCallback="chooseCallback" let-clearCallback="clearCallback"
-                    let-uploadCallback="uploadCallback">
-                    <div class="w-full flex flex-row gap-4 items-center">
-                        <p-progressbar value="35" [showValue]="false" class="w-full"
-                            styleClass="md:w-20rem h-1 w-full md:ml-auto">
-                        </p-progressbar>
-                        <p-button icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger"
-                            [disabled]="!files || files.length === 0" />
-                    </div>
-                </ng-template>
+            <p-fileupload #fu chooseLabel="Choose" chooseIcon="pi pi-upload" name="demo[]" accept="image/*"
+                maxFileSize="100000000" (onSelect)="onFileSelect($event)">
+                <ng-template #header />
                 <ng-template #content let-files let-uploadedFiles="uploadedFiles"
                     let-removeFileCallback="removeFileCallback"
                     let-removeUploadedFileCallback="removeUploadedFileCallback">
-                    <div class="flex flex-col">
+                    <div *ngIf="files?.length > 0">
+                        <div class="flex flex-wrap gap-4">
+                            <div *ngFor="let file of files; index as index"
+                                class=" mt-[18px] rounded-border flex flex-col items-center gap-4 w-full">
+                                <div>
+                                    <img role="presentation" [alt]="file.name" [src]="file.objectURL" width="100"
+                                        height="50" />
+                                </div>
+                                <span class="font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden">{{
+                                    file.name }}</span>
+                                <div>{{ formatSize(file.size) }}</div>
+                                <p-button (click)="onRemoveTemplatingFile($event, file, removeFileCallback, index)"
+                                    icon="pi pi-times" [outlined]="true" [rounded]="true" severity="danger" />
+                            </div>
+                        </div>
                     </div>
                 </ng-template>
-                <ng-template #file></ng-template>
-                <ng-template #empty>
-                    <div
-                        class="flex flex-col items-center justify-center border-2 border-dotted rounded-2xl p-5 shadow">
+                <ng-template #empty let-chooseCallback="chooseCallback">
+                    <div (click)="fu.choose()" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
+                        (drop)="onDrop($event)" [ngClass]="{ 'bg-gray-200 border-blue-900': isDragOver }"
+                        class="flex flex-col items-center justify-center border-2 border-dotted rounded-2xl p-5 mt-[18px] shadow cursor-pointer hover:bg-gray-200 hover:border-blue-900">
                         <i class="pi pi-cloud-upload !border-2 !rounded-full !p-4 !text-[1.5rem] !text-muted-color"></i>
                         <p class="mt-6 mb-0">Arrastra o abre tu imagen.</p>
                     </div>
@@ -66,7 +70,7 @@
         </div>
 
         <div class="absolute top-5 right-[105%] whitespace-nowrap">
-            <p-splitbutton label="Descargar mockup" [model]="downloadOptions" />
+            <p-splitbutton label="Descargar mockup" (click)="downloadPreview()" [model]="downloadOptions" />
         </div>
     </div>
 

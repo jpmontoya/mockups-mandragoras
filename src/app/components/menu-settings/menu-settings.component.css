@@ -1,0 +1,4 @@
+::ng-deep .p-fileupload-header {
+    padding: 0 !important;
+    margin: 0 !important;
+}

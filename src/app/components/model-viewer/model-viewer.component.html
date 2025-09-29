@@ -2,22 +2,22 @@
     <div id="container-model" class="w-1/2 h-full">
         <div id="container3D" class="w-full h-full"></div>
     </div>
-    <div class="absolute bottom-0 right-0 w-[20vw] h-[20vw] grid grid-cols-2 bg-[#FFFFFF50]">
+    <div id="preview" class="absolute bottom-0 right-0 w-[20vw] h-[20vw] grid grid-cols-2 bg-[#FFFFFF50]">
         <div class="relative">
             <div class="absolute bottom-1 left-1 text-sm text-gray-900 font-semibold">Isometrica</div>
-            <canvas #preview1 class="w-full h-full border-b-2 border-[#00000025]"></canvas>
+            <canvas id="preview1" #preview1 class="w-full h-full border-b-2 border-[#00000025]"></canvas>
         </div>
         <div class="relative">
             <div class="absolute bottom-1 left-1 text-sm text-gray-900 font-semibold">Lateral</div>
-            <canvas #preview2 class="w-full h-full border-l-2 border-b-2 border-[#00000025]"></canvas>
+            <canvas id="preview2" #preview2 class="w-full h-full border-l-2 border-b-2 border-[#00000025]"></canvas>
         </div>
         <div class="relative">
             <div class="absolute bottom-1 left-1 text-sm text-gray-900 font-semibold">Frontal</div>
-            <canvas #preview3 class="w-full h-full"></canvas>
+            <canvas id="preview3" #preview3 class="w-full h-full"></canvas>
         </div>
         <div class="relative">
             <div class="absolute bottom-1 left-1 text-sm text-gray-900 font-semibold">Posterior</div>
-            <canvas #preview4 class="w-full h-full border-l-2 border-[#00000025]"></canvas>
+            <canvas id="preview4" #preview4 class="w-full h-full border-l-2 border-[#00000025]"></canvas>
         </div>
     </div>
 </div>
