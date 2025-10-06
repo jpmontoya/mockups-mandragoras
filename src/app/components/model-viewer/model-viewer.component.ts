@@ -11,6 +11,8 @@ import { ColorsModelsService } from '../../services/colors-models/colors-models.
 import { CommonModule } from '@angular/common';
 import { Models3dService } from '../../services/models-3d/models-3d.service';
 import { ImagesPrintingService } from '../../services/images-printing/images-printing.service';
+import { PreviewService } from '../../services/preview/preview.service';
+import { LoaderService } from '../../services/loader/loader.service';
 
 @Component({
   selector: 'app-model-viewer',
@@ -37,14 +39,41 @@ export class ModelViewerComponent implements AfterViewInit {
   private previewCameras: any;
 
   public colorPickerBody: Observable<String>;
+  public colorPickerRing: Observable<String>;
+  public colorPickerHandle: Observable<String>;
+  public colorPickerInside: Observable<String>;
+  public colorPickerBase: Observable<String>;
+
   public selectedModel: Observable<any>;
   public imagePrinting: Observable<String>;
+  public lastImagePrinting: any;
 
   public imageSelected: string = "";
   public modelSelected: any = "";
 
+  public loader: Observable<Boolean>;
+
   private bodyMaterial = new THREE.MeshStandardMaterial({
-    color: "#ffffff",
+    metalness: 0,
+    roughness: 0,
+  });
+
+  private ringMaterial = new THREE.MeshStandardMaterial({
+    metalness: 0,
+    roughness: 0,
+  });
+
+  private handleMaterial = new THREE.MeshStandardMaterial({
+    metalness: 0,
+    roughness: 0,
+  });
+
+  private insideMaterial = new THREE.MeshStandardMaterial({
+    metalness: 0,
+    roughness: 0,
+  });
+
+  private baseMaterial = new THREE.MeshStandardMaterial({
     metalness: 0,
     roughness: 0,
   });
@@ -54,11 +83,20 @@ export class ModelViewerComponent implements AfterViewInit {
     private router: Router,
     private colorsModelsService: ColorsModelsService,
     private models3dService: Models3dService,
-    private imagesPrintingService: ImagesPrintingService
+    private imagesPrintingService: ImagesPrintingService,
+    private previewService: PreviewService,
+    private loaderService: LoaderService
   ) {
     this.colorPickerBody = this.colorsModelsService.getColorBody;
+    this.colorPickerRing = this.colorsModelsService.getColorRing;
+    this.colorPickerHandle = this.colorsModelsService.getColorHandle;
+    this.colorPickerInside = this.colorsModelsService.getColorInside;
+    this.colorPickerBase = this.colorsModelsService.getColorBase;
+
     this.selectedModel = models3dService.getSelectedModel;
     this.imagePrinting = imagesPrintingService.getImage;
+
+    this.loader = this.loaderService.getLoader;
 
     if (!this.window) {
       this.window = window;
@@ -89,9 +127,11 @@ export class ModelViewerComponent implements AfterViewInit {
     ];
     this.previewCameras[0].position.set(200, 150, 300);   // Isometrico
     this.previewCameras[1].position.set(200, 50, 0);   // Lateral
-    this.previewCameras[2].position.set(-50, 0, 200);  // Frontal
-    this.previewCameras[3].position.set(-50, 20, -210);  // Posterior
+    this.previewCameras[2].position.set(40, 0, 200);  // Frontal -50
+    this.previewCameras[3].position.set(40, 20, -210);  // Posterior
     this.previewCameras.forEach((cam: any) => cam.lookAt(0, 0, 0));
+
+    this.previewService.setPreviewCameras = this.previewCameras;
 
     return {
       scene
@@ -101,7 +141,13 @@ export class ModelViewerComponent implements AfterViewInit {
   createRender(): any {
     const container3D = document.getElementById("container-model") as HTMLDivElement;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, preserveDrawingBuffer: true });
+    const renderer = new THREE.WebGLRenderer(
+      {
+        alpha: true,
+        preserveDrawingBuffer: true,
+        antialias: true,
+        powerPreference: "high-performance"
+      });
     renderer.setSize(container3D?.offsetWidth, container3D?.offsetHeight);
     renderer.shadowMap.enabled = true;
     document.getElementById('container3D')?.appendChild(renderer.domElement);
@@ -120,7 +166,14 @@ export class ModelViewerComponent implements AfterViewInit {
     ];
 
     canvases.forEach((canvas, i) => {
-      listRenderer.push(new THREE.WebGLRenderer({ canvas, alpha: true, preserveDrawingBuffer: true }));
+      listRenderer.push(new THREE.WebGLRenderer(
+        {
+          canvas,
+          alpha: true,
+          preserveDrawingBuffer: true,
+          antialias: true,
+          powerPreference: "high-performance"
+        }));
       listRenderer[i].setSize(200, 200, false);
     });
 
@@ -128,8 +181,6 @@ export class ModelViewerComponent implements AfterViewInit {
   }
 
   async loadRoomModel(modelRoute: string): Promise<any> {
-
-    let imagePrinting: any = await this.createSublimationPrinting();
 
     const loader = new GLTFLoader();
     const room3DModel: any = await new Promise((resolve, reject) => {
@@ -146,10 +197,25 @@ export class ModelViewerComponent implements AfterViewInit {
 
       if (node.isMesh && node.name === "Body") {
         node.material = this.bodyMaterial;
+      } else if (node.isMesh && node.name === "Ring") {
+        node.material = this.ringMaterial;
+      } else if (node.isMesh && node.name === "Handle") {
+        node.material = this.handleMaterial;
+      } else if (node.isMesh && node.name === "Inside") {
+        node.material = this.insideMaterial;
+      } else if (node.isMesh && node.name === "Base") {
+        node.material = this.baseMaterial;
       }
     });
 
-    room3DModel.add(imagePrinting)
+    let imagePrinting: any = await this.createSublimationPrinting();
+    if (imagePrinting) {
+      this.lastImagePrinting = imagePrinting;
+      room3DModel.add(imagePrinting)
+    }
+    //  else {
+    //   if (this.lastImagePrinting) this.removeSublimationPrinting(room3DModel, this.lastImagePrinting);
+    // }
 
     return room3DModel;
   }
@@ -170,7 +236,23 @@ export class ModelViewerComponent implements AfterViewInit {
   setModelColor() {
     this.colorPickerBody.subscribe((value: any) => {
       this.bodyMaterial.color.set(value);
-    })
+    });
+
+    this.colorPickerRing.subscribe((value: any) => {
+      this.ringMaterial.color.set(value);
+    });
+
+    this.colorPickerHandle.subscribe((value: any) => {
+      this.handleMaterial.color.set(value);
+    });
+
+    this.colorPickerInside.subscribe((value: any) => {
+      this.insideMaterial.color.set(value);
+    });
+
+    this.colorPickerBase.subscribe((value: any) => {
+      this.baseMaterial.color.set(value);
+    });
   }
 
   async reloadModel(room3DModel: any, scene: any) {
@@ -185,22 +267,24 @@ export class ModelViewerComponent implements AfterViewInit {
     room3DModel.position.sub(center);
 
     scene.add(room3DModel);
+    this.previewService.setScene = scene;
   }
 
   async createSublimationPrinting(): Promise<any> {
     const loaderImagePrinting = new THREE.TextureLoader();
     return await new Promise((resolve, reject) => {
+      if (this.imageSelected === '') resolve(null);
+
       loaderImagePrinting.load(this.imageSelected,
         function (texture) {
 
+          texture.colorSpace = THREE.SRGBColorSpace;
           texture.wrapS = THREE.ClampToEdgeWrapping;
           texture.wrapT = THREE.ClampToEdgeWrapping;
 
           const material = new THREE.MeshStandardMaterial(
             {
               map: texture,
-              metalness: 0.1,
-              roughness: 0.5,
               transparent: true,
               side: THREE.DoubleSide
             });
@@ -212,14 +296,28 @@ export class ModelViewerComponent implements AfterViewInit {
           const geometry = new THREE.CylinderGeometry(radius, radius, height, 64, 1, true, THREE.MathUtils.degToRad(129.2), 2 * Math.PI - opening);
 
           const mesh = new THREE.Mesh(geometry, material);
-
+          mesh.name = "sublimation-printing";
           mesh.rotation.y = Math.PI;
-
           mesh.position.set(0, (height / 2) + 2.5, 0);
           resolve(mesh);
         }
       );
+      this.loaderService.setLoader = false;
     });
+  }
+
+  removeSublimationPrinting(room3DModel: any, mesh: any) {
+    if (mesh) {
+      console.log(mesh);
+      room3DModel.remove(mesh);
+
+      if (mesh.material instanceof THREE.MeshStandardMaterial) {
+        mesh.material.map?.dispose();
+        mesh.material.dispose();
+      }
+      mesh.geometry.dispose();
+      mesh = null;
+    }
   }
 
   async managmentRoom() {
@@ -266,7 +364,7 @@ export class ModelViewerComponent implements AfterViewInit {
     this.imagePrinting.subscribe(async (value: any) => {
       this.imageSelected = value;
       this.reloadModel(room3DModel, scene);
-    })
+    });
 
     this.selectedModel.subscribe(async (value: any) => {
       this.modelSelected = value;

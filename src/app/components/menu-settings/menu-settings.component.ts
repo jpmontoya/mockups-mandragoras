@@ -16,11 +16,15 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { PrimeNG } from 'primeng/config';
 import { ImagesPrintingService } from '../../services/images-printing/images-printing.service';
-import html2canvas from 'html2canvas';
+import { FieldsetModule } from 'primeng/fieldset';
+import * as THREE from 'three';
+import { PreviewService } from '../../services/preview/preview.service';
+import { LoaderService } from '../../services/loader/loader.service';
 
 interface Categories {
   name: string;
   code: string;
+  disabled: boolean;
 }
 
 @Component({
@@ -39,7 +43,8 @@ interface Categories {
     ButtonModule,
     ProgressBarModule,
     SplitButtonModule,
-    ColorPickerModule
+    ColorPickerModule,
+    FieldsetModule
   ],
   templateUrl: './menu-settings.component.html',
   styleUrl: './menu-settings.component.css',
@@ -48,37 +53,66 @@ interface Categories {
 })
 export class MenuSettingsComponent implements OnInit {
   categories: Categories[] | undefined;
-  selectedCategory: Categories | undefined;
+  selectedCategory: Categories | undefined = { name: 'Mugs', code: 'mugs', disabled: false };
 
   public colorPickerBody: Observable<String>;
+  public colorPickerRing: Observable<String>;
+  public colorPickerHandle: Observable<String>;
+  public colorPickerInside: Observable<String>;
+  public colorPickerBase: Observable<String>;
+
   public isDragOver: boolean = false;
   uploadedImageUrl: string | null = null;
 
   downloadOptions: MenuItem[];
 
+  public loader: Observable<Boolean>;
+
   constructor(
     private messageService: MessageService,
     private colorsModelsService: ColorsModelsService,
     private imagesPrintingService: ImagesPrintingService,
-    private config: PrimeNG
+    private config: PrimeNG,
+    private previewService: PreviewService,
+    private loaderService: LoaderService
   ) {
     this.colorPickerBody = this.colorsModelsService.getColorBody;
+    this.colorPickerRing = this.colorsModelsService.getColorRing;
+    this.colorPickerHandle = this.colorsModelsService.getColorHandle;
+    this.colorPickerInside = this.colorsModelsService.getColorInside;
+    this.colorPickerBase = this.colorsModelsService.getColorBase;
+
+    this.loader = this.loaderService.getLoader;
 
     this.categories = [
-      { name: 'Mugs', code: 'mugs' },
-      { name: 'Termos', code: 'RM' },
-      { name: 'Camisetas', code: 'tshirts' },
-      { name: 'Busos', code: 'coat' },
+      { name: 'Mugs', code: 'mugs', disabled: false },
+      { name: 'Termos', code: 'RM', disabled: true },
+      { name: 'Camisetas', code: 'tshirts', disabled: true },
+      { name: 'Busos', code: 'coat', disabled: true },
     ];
 
     this.downloadOptions = [
       {
-        label: 'Update',
+        label: 'Frontal',
+        disabled: true,
         command: () => {
         }
       },
       {
-        label: 'Delete',
+        label: 'Posterior',
+        disabled: true,
+        command: () => {
+        }
+      },
+      {
+        label: 'Isométrica',
+        disabled: true,
+        command: () => {
+        }
+      },
+      {
+        label: 'Lateral',
+        disabled: true,
         command: () => {
         }
       }
@@ -90,6 +124,22 @@ export class MenuSettingsComponent implements OnInit {
 
   changeColorBody(color: any) {
     this.colorsModelsService.setColorBody = color.value;
+  }
+
+  changeColorRing(color: any) {
+    this.colorsModelsService.setColorRing = color.value;
+  }
+
+  changeColorHandle(color: any) {
+    this.colorsModelsService.setColorHandle = color.value;
+  }
+
+  changeColorInside(color: any) {
+    this.colorsModelsService.setColorInside = color.value;
+  }
+
+  changeColorBase(color: any) {
+    this.colorsModelsService.setColorBase = color.value;
   }
 
   onDragOver(event: DragEvent) {
@@ -122,9 +172,11 @@ export class MenuSettingsComponent implements OnInit {
 
   onRemoveTemplatingFile(event: any, file: any, removeFileCallback: any, index: number) {
     removeFileCallback(event, index);
+    window.location.reload();
   }
 
   onFileSelect(event: any) {
+    this.loaderService.setLoader = true;
     const file: File = event.files[0];
     const reader = new FileReader();
     reader.onload = () => {
@@ -133,40 +185,160 @@ export class MenuSettingsComponent implements OnInit {
     reader.readAsDataURL(file);
   }
 
-  downloadPreview() {
-    const canvas1 = document.getElementById('preview1') as HTMLCanvasElement;
-    const canvas2 = document.getElementById('preview2') as HTMLCanvasElement;
-    const canvas3 = document.getElementById('preview3') as HTMLCanvasElement;
-    const canvas4 = document.getElementById('preview4') as HTMLCanvasElement;
+  async downloadPreview() {
+    try {
+      const [scene, previewCameras] = await Promise.all([
+        new Promise<any>((resolve) => this.previewService.getScene.subscribe(resolve)),
+        new Promise<any[]>((resolve) => this.previewService.getPreviewCameras.subscribe(resolve))
+      ]);
 
-    // Crear canvas final
-    const finalCanvas = document.createElement('canvas');
-    const ctx = finalCanvas.getContext('2d')!;
+      if (!scene || !Array.isArray(previewCameras) || previewCameras.length === 0) {
+        console.error('Scene or cameras not available');
+        return;
+      }
 
-    const width = canvas1.width + canvas2.width;  // total ancho del grid
-    const height = canvas1.height + canvas3.height; // total alto del grid
+      // Crear renderer
+      const renderer = new THREE.WebGLRenderer({
+        preserveDrawingBuffer: true,
+        antialias: true,
+        alpha: false
+      });
 
-    finalCanvas.width = width;
-    finalCanvas.height = height;
+      const size = 400;
+      const quality = 2; // Reducir calidad si hay problemas de performance
+      renderer.setSize(size * quality, size * quality);
+      renderer.setPixelRatio(quality);
 
-    // Dibujar los canvas en el grid
-    ctx.drawImage(canvas1, 0, 0); // top-left
-    ctx.drawImage(canvas2, canvas1.width, 0); // top-right
-    ctx.drawImage(canvas3, 0, canvas1.height); // bottom-left
-    ctx.drawImage(canvas4, canvas3.width, canvas1.height); // bottom-right
+      renderer.setClearColor(0x656c77, 1);
+      renderer.clear();
 
-    // Agregar textos
-    ctx.fillStyle = 'black';
-    ctx.font = '16px sans-serif';
-    ctx.fillText('Isometrica', 10, canvas1.height - 10);
-    ctx.fillText('Lateral', canvas1.width + 10, canvas2.height - 10);
-    ctx.fillText('Frontal', 10, canvas1.height + canvas3.height - 10);
-    ctx.fillText('Posterior', canvas3.width + 10, canvas4.height + canvas3.height - 10);
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = size * 2 * quality;
+      finalCanvas.height = size * 2 * quality;
+      const ctx = finalCanvas.getContext('2d')!;
 
-    // Descargar imagen
-    const link = document.createElement('a');
-    link.href = finalCanvas.toDataURL('image/png');
-    link.download = 'preview.png';
-    link.click();
+      ctx.fillStyle = '#656c77';
+      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+      const renderView = (camera: any, index: any) => {
+        return new Promise(resolve => {
+          // Forzar actualización
+          camera.updateMatrixWorld();
+          scene.updateMatrixWorld();
+
+          // Renderizar
+          renderer.render(scene, camera);
+
+          // Esperar al siguiente frame
+          requestAnimationFrame(() => {
+            const x = (index % 2) * size * quality;
+            const y = Math.floor(index / 2) * size * quality;
+
+            ctx.drawImage(
+              renderer.domElement,
+              x, y,
+              size * quality,
+              size * quality
+            );
+            resolve(true);
+          });
+        });
+      };
+
+      // Renderizar todas las vistas secuencialmente
+      for (let i = 0; i < 4; i++) {
+        if (previewCameras[i]) {
+          await renderView(previewCameras[i], i);
+        }
+      }
+
+      this.drawTexts(ctx, size, quality);
+
+      renderer.dispose();
+
+      const link = document.createElement('a');
+      link.href = finalCanvas.toDataURL('image/png');
+      link.download = `preview-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+    } catch (error) {
+      console.error('Error downloading preview:', error);
+    }
+  }
+
+  private drawTexts(ctx: CanvasRenderingContext2D, size: number, quality: number) {
+    const textStyle = {
+      font: `bold ${20 * quality}px 'Arial', sans-serif`,
+      color: '#101828',
+      background: 'rgba(0, 0, 0, 0.6)',
+      padding: 10 * quality,
+      borderRadius: 5 * quality
+    };
+
+    const lineStyle = {
+      color: '#565c66',
+      width: 4 * quality,
+      opacity: 1
+    };
+
+    const views = [
+      { name: 'Isométrica', x: 0, y: 0 },
+      { name: 'Lateral', x: size * quality, y: 0 },
+      { name: 'Frontal', x: 0, y: size * quality },
+      { name: 'Posterior', x: size * quality, y: size * quality }
+    ];
+
+    views.forEach(view => {
+      // Medir texto para fondo
+      ctx.font = textStyle.font;
+      const textMetrics = ctx.measureText(view.name);
+      const textWidth = textMetrics.width + (textStyle.padding * 2);
+      const textHeight = 30 * quality; // Altura aproximada
+
+      // Posición del rectángulo (esquina inferior izquierda de cada vista)
+      const rectX = view.x + (20 * quality);
+      const rectY = view.y + (size * quality) - (20 * quality) - textHeight;
+
+      // Fondo semitransparente para mejor legibilidad
+      ctx.fillStyle = textStyle.background;
+
+      // ↓↓↓ CENTRAR EL TEXTO DENTRO DEL RECTÁNGULO ↓↓↓
+      ctx.textAlign = 'center'; // Centrar horizontalmente
+      ctx.textBaseline = 'middle'; // Centrar verticalmente
+
+      // Calcular centro del rectángulo
+      const textCenterX = rectX + (textWidth / 2);
+      const textCenterY = rectY + (textHeight / 2);
+
+      // Texto centrado
+      ctx.fillStyle = textStyle.color;
+      ctx.font = textStyle.font;
+      ctx.fillText(view.name, textCenterX, textCenterY);
+
+      // Restaurar alineación por si acaso (opcional)
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+    });
+
+    ctx.strokeStyle = lineStyle.color;
+    ctx.lineWidth = lineStyle.width;
+    ctx.globalAlpha = lineStyle.opacity;
+
+    // Línea vertical central
+    ctx.beginPath();
+    ctx.moveTo(size * quality, 0);
+    ctx.lineTo(size * quality, size * quality * 2);
+    ctx.stroke();
+
+    // Línea horizontal central
+    ctx.beginPath();
+    ctx.moveTo(0, size * quality);
+    ctx.lineTo(size * quality * 2, size * quality);
+    ctx.stroke();
+
+    // Restaurar opacidad
+    ctx.globalAlpha = 1;
   }
 }

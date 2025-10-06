@@ -1,78 +1,112 @@
-<div class="relative w-full h-full flex flex-col p-5 text-center shadow">
-    <p-message severity="secondary">
-        <ng-template #icon>
-            <div class="w-full flex flex-row-reverse items-center justify-between font-bold">
-                <div class="pi pi-sparkles" style="color: #FD9A30"></div>
-                <div>Bosquejo <span class="font-normal text-sm">v1.0.0</span></div>
-            </div>
-        </ng-template>
-    </p-message>
+<div class="relative w-full h-full shadow">
+    <div class="h-full flex flex-col p-5 text-center overflow-y-scroll">
+        <p-message severity="secondary">
+            <ng-template #icon>
+                <div class="w-full flex flex-row items-center justify-between font-bold">
+                    <div>Bosquejo <span class="font-normal text-sm">v2.0.0</span></div>
+                    <div class="pi pi-sparkles hover:animate-ping" style="color: #FD9A30"></div>
+                </div>
+            </ng-template>
+        </p-message>
 
-    <div class="flex flex-col gap-6 mt-5">
-
-        <div class="w-full">
-            <div class="w-full text-start text-sm ml-3 mb-1 text-gray-500">Imagen
-                <!-- <span class="text-red-500 text-[0.7rem]">(Ancho: 210 x Alto: 95mm)</span> -->
-            </div>
-            <p-fileupload #fu chooseLabel="Choose" chooseIcon="pi pi-upload" name="demo[]" accept="image/*"
-                maxFileSize="100000000" (onSelect)="onFileSelect($event)">
-                <ng-template #header />
-                <ng-template #content let-files let-uploadedFiles="uploadedFiles"
-                    let-removeFileCallback="removeFileCallback"
-                    let-removeUploadedFileCallback="removeUploadedFileCallback">
-                    <div *ngIf="files?.length > 0">
-                        <div class="flex flex-wrap gap-4">
-                            <div *ngFor="let file of files; index as index"
-                                class=" mt-[18px] rounded-border flex flex-col items-center gap-4 w-full">
-                                <div>
-                                    <img role="presentation" [alt]="file.name" [src]="file.objectURL" width="100"
-                                        height="50" />
+        <div class="flex flex-col gap-5 mt-5">
+            <div class="w-full">
+                <div class="w-full font-semibold text-left text-gray-700 pl-3">Imagen</div>
+                <p-fileupload #fu chooseLabel="Choose" [disabled]="loader | async" chooseIcon="pi pi-upload"
+                    name="demo[]" accept="image/*" maxFileSize="100000000" (onSelect)="onFileSelect($event)">
+                    <ng-template #header />
+                    <ng-template #content let-files let-uploadedFiles="uploadedFiles"
+                        let-removeFileCallback="removeFileCallback"
+                        let-removeUploadedFileCallback="removeUploadedFileCallback">
+                        <div *ngIf="files?.length > 0">
+                            <div class="flex flex-wrap gap-4">
+                                <div *ngFor="let file of files; index as index"
+                                    class=" mt-[18px] rounded-border flex flex-col items-center gap-4 w-full">
+                                    <div>
+                                        <img role="presentation" [alt]="file.name" [src]="file.objectURL" width="100"
+                                            height="50" />
+                                    </div>
+                                    <span
+                                        class="font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden">{{
+                                        file.name }}</span>
+                                    <div>{{ formatSize(file.size) }}</div>
+                                    <p-button (click)="onRemoveTemplatingFile($event, file, removeFileCallback, index)"
+                                        icon="pi pi-times" [outlined]="true" [rounded]="true" severity="danger" />
                                 </div>
-                                <span class="font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden">{{
-                                    file.name }}</span>
-                                <div>{{ formatSize(file.size) }}</div>
-                                <p-button (click)="onRemoveTemplatingFile($event, file, removeFileCallback, index)"
-                                    icon="pi pi-times" [outlined]="true" [rounded]="true" severity="danger" />
                             </div>
                         </div>
-                    </div>
-                </ng-template>
-                <ng-template #empty let-chooseCallback="chooseCallback">
-                    <div (click)="fu.choose()" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
-                        (drop)="onDrop($event)" [ngClass]="{ 'bg-gray-200 border-blue-900': isDragOver }"
-                        class="flex flex-col items-center justify-center border-2 border-dotted rounded-2xl p-5 mt-[18px] shadow cursor-pointer hover:bg-gray-200 hover:border-blue-900">
-                        <i class="pi pi-cloud-upload !border-2 !rounded-full !p-4 !text-[1.5rem] !text-muted-color"></i>
-                        <p class="mt-6 mb-0">Arrastra o abre tu imagen.</p>
-                    </div>
-                </ng-template>
-            </p-fileupload>
-        </div>
+                    </ng-template>
+                    <ng-template #empty let-chooseCallback="chooseCallback">
+                        <div (click)="fu.choose()" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
+                            (drop)="onDrop($event)" [ngClass]="{ 'bg-gray-200 border-blue-900': isDragOver }"
+                            class="flex flex-col items-center justify-center border-2 border-dotted rounded-2xl p-5 mt-[18px] shadow hover:bg-gray-200 hover:border-blue-900 cursor-pointer">
+                            <i
+                                class="pi pi-cloud-upload !border-2 !rounded-full !p-4 !text-[1.5rem] !text-muted-color"></i>
+                            <p class="mt-6 mb-0">Arrastra o abre tu imagen.</p>
+                        </div>
+                    </ng-template>
+                </p-fileupload>
+            </div>
 
-        <p-floatlabel>
-            <div class="card flex justify-center">
+            <div>
+                <div class="w-full font-semibold text-left text-gray-700 pl-3">Categorías</div>
                 <p-select id="categories" [options]="categories" [(ngModel)]="selectedCategory" optionLabel="name"
                     class="w-full" />
             </div>
-            <label for="categories">Categorías</label>
-        </p-floatlabel>
 
-        <div class="w-full">
-            <div class="w-full text-start text-sm ml-3 mb-1 text-gray-500">Apariencia
-            </div>
-            <div class="flex flex-row justify-between px-5">
-                <span class="text-gray-500 font-semibold">Color del Mug</span>
-                <div class="flex flex-row gap-2">
-                    <p-colorpicker [ngModel]="colorPickerBody | async" inputId="cp-hex"
-                        (onChange)="changeColorBody($event)" appendTo="body" />
-                    <span class="text-gray-500">{{ colorPickerBody | async }}</span>
+            <div>
+                <div class="w-full font-semibold text-left text-gray-700 pl-3">Apariencia</div>
+                <div class="flex flex-col gap-3 border-[1px] rounded-[6px] border-[#c7cfdb] p-2 shadow">
+                    <div class="flex flex-row justify-start">
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color lienzo</span>
+                        <div class="flex flex-row gap-2">
+                            <p-colorpicker [ngModel]="colorPickerBody | async" inputId="cp-hex"
+                                (onChange)="changeColorBody($event)" appendTo="body" />
+                            <span class="text-gray-500">{{ colorPickerBody | async }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-row justify-start">
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color anillo</span>
+                        <div class="flex flex-row gap-2">
+                            <p-colorpicker [ngModel]="colorPickerRing | async" inputId="cp-hex"
+                                (onChange)="changeColorRing($event)" appendTo="body" />
+                            <span class="text-gray-500">{{ colorPickerRing | async }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-row justify-start">
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color interior</span>
+                        <div class="flex flex-row gap-2">
+                            <p-colorpicker [ngModel]="colorPickerInside | async" inputId="cp-hex"
+                                (onChange)="changeColorInside($event)" appendTo="body" />
+                            <span class="text-gray-500">{{ colorPickerInside | async }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-row justify-start">
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color manija</span>
+                        <div class="flex flex-row gap-2">
+                            <p-colorpicker [ngModel]="colorPickerHandle | async" inputId="cp-hex"
+                                (onChange)="changeColorHandle($event)" appendTo="body" />
+                            <span class="text-gray-500">{{ colorPickerHandle | async }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-row justify-start">
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color base</span>
+                        <div class="flex flex-row gap-2">
+                            <p-colorpicker [ngModel]="colorPickerBase | async" inputId="cp-hex"
+                                (onChange)="changeColorBase($event)" appendTo="body" />
+                            <span class="text-gray-500">{{ colorPickerBase | async }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="absolute top-5 right-[105%] whitespace-nowrap">
-            <p-splitbutton label="Descargar mockup" (click)="downloadPreview()" [model]="downloadOptions" />
+            <div class="absolute top-5 right-[105%] whitespace-nowrap">
+                <p-splitbutton label="Descargar mockup" (onClick)="downloadPreview()" [model]="downloadOptions" />
+            </div>
         </div>
     </div>
-
-
 </div>

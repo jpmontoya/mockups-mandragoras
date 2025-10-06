@@ -4,7 +4,7 @@
     </div>
     <div id="preview" class="absolute bottom-0 right-0 w-[20vw] h-[20vw] grid grid-cols-2 bg-[#FFFFFF50]">
         <div class="relative">
-            <div class="absolute bottom-1 left-1 text-sm text-gray-900 font-semibold">Isometrica</div>
+            <div class="absolute bottom-1 left-1 text-sm text-gray-900 font-semibold">Isométrica</div>
             <canvas id="preview1" #preview1 class="w-full h-full border-b-2 border-[#00000025]"></canvas>
         </div>
         <div class="relative">
@@ -20,4 +20,13 @@
             <canvas id="preview4" #preview4 class="w-full h-full border-l-2 border-[#00000025]"></canvas>
         </div>
     </div>
+    @if (loader | async) {
+    <div class="absolute w-full h-full flex items-center justify-center z-[100] bg-[#00000085]">
+        <svg class="animate-spin h-6 w-6 text-gray-100" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.25" />
+            <path fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+    </div>
+    }
 </div>
