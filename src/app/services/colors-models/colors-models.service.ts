@@ -11,6 +11,8 @@ export class ColorsModelsService {
   private colorHandle: BehaviorSubject<String> = new BehaviorSubject<String>("#ffffff");
   private colorInside: BehaviorSubject<String> = new BehaviorSubject<String>("#ffffff");
   private colorBase: BehaviorSubject<String> = new BehaviorSubject<String>("#ffffff");
+  private tempMug: BehaviorSubject<Number> = new BehaviorSubject<Number>(50);
+  private isMagicMug: BehaviorSubject<Boolean> = new BehaviorSubject<Boolean>(false);
 
   constructor() { }
 
@@ -52,5 +54,21 @@ export class ColorsModelsService {
 
   get getColorInside() {
     return this.colorInside.asObservable();
+  }
+
+  set setTempMug(temp: Number) {
+    this.tempMug.next(temp)
+  }
+
+  get getTempMug() {
+    return this.tempMug.asObservable();
+  }
+
+  set setIsMagicMug(state: Boolean) {
+    this.isMagicMug.next(state)
+  }
+
+  get getIsMagicMug() {
+    return this.isMagicMug.asObservable();
   }
 }

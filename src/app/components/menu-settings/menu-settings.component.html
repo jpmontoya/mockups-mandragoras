@@ -2,8 +2,11 @@
     <div class="h-full flex flex-col p-5 text-center overflow-y-scroll">
         <p-message severity="secondary">
             <ng-template #icon>
-                <div class="w-full flex flex-row items-center justify-between font-bold">
-                    <div>Bosquejo <span class="font-normal text-sm">v2.0.0</span></div>
+                <div class="relative w-full flex flex-row items-center justify-between font-bold">
+                    <div class="absolute -top-[1.3rem] left-0">Sublimando</div>
+                    <div class="ml-3">
+                        Bosquejos<span class="font-normal text-sm ml-3">v2.1.0</span>
+                    </div>
                     <div class="pi pi-sparkles hover:animate-ping" style="color: #FD9A30"></div>
                 </div>
             </ng-template>
@@ -57,10 +60,25 @@
             <div>
                 <div class="w-full font-semibold text-left text-gray-700 pl-3">Apariencia</div>
                 <div class="flex flex-col gap-3 border-[1px] rounded-[6px] border-[#c7cfdb] p-2 shadow">
-                    <div class="flex flex-row justify-start">
-                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color lienzo</span>
+
+                    <div class="flex flex-row justify-start whitespace-nowrap items-center gap-5 pr-3">
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Mug mágico</span>
                         <div class="flex flex-row gap-2">
-                            <p-colorpicker [ngModel]="colorPickerBody | async" inputId="cp-hex"
+                            <p-toggleswitch (onChange)="toggleIsMagicMug($event)" />
+                        </div>
+                        @if(isMagicMug){
+                        <p-slider (onChange)="changeTempMagicMug($event)" [ngModel]="50" class="w-full" />
+                        }
+                    </div>
+
+                    <div class="flex flex-row justify-start">
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color lienzo
+                            @if(isMagicMug){
+                            <i class="pi pi-lock !text-[0.8rem] text-red-600" pTooltip="Bloqueado"></i>
+                            }
+                        </span>
+                        <div class="flex flex-row gap-2">
+                            <p-colorpicker [disabled]="isMagicMug" [ngModel]="colorPickerBody | async" inputId="cp-hex"
                                 (onChange)="changeColorBody($event)" appendTo="body" />
                             <span class="text-gray-500">{{ colorPickerBody | async }}</span>
                         </div>
@@ -85,18 +103,26 @@
                     </div>
 
                     <div class="flex flex-row justify-start">
-                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color manija</span>
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color manija
+                            @if(isMagicMug){
+                            <i class="pi pi-lock !text-[0.8rem] text-red-600" pTooltip="Bloqueado"></i>
+                            }
+                        </span>
                         <div class="flex flex-row gap-2">
-                            <p-colorpicker [ngModel]="colorPickerHandle | async" inputId="cp-hex"
-                                (onChange)="changeColorHandle($event)" appendTo="body" />
+                            <p-colorpicker [disabled]="isMagicMug" [ngModel]="colorPickerHandle | async"
+                                inputId="cp-hex" (onChange)="changeColorHandle($event)" appendTo="body" />
                             <span class="text-gray-500">{{ colorPickerHandle | async }}</span>
                         </div>
                     </div>
 
                     <div class="flex flex-row justify-start">
-                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color base</span>
+                        <span class="w-1/2 text-start text-gray-500 font-semibold">Color base
+                            @if(isMagicMug){
+                            <i class="pi pi-lock !text-[0.8rem] text-red-600" pTooltip="Bloqueado"></i>
+                            }
+                        </span>
                         <div class="flex flex-row gap-2">
-                            <p-colorpicker [ngModel]="colorPickerBase | async" inputId="cp-hex"
+                            <p-colorpicker [disabled]="isMagicMug" [ngModel]="colorPickerBase | async" inputId="cp-hex"
                                 (onChange)="changeColorBase($event)" appendTo="body" />
                             <span class="text-gray-500">{{ colorPickerBase | async }}</span>
                         </div>

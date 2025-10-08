@@ -43,6 +43,8 @@ export class ModelViewerComponent implements AfterViewInit {
   public colorPickerHandle: Observable<String>;
   public colorPickerInside: Observable<String>;
   public colorPickerBase: Observable<String>;
+  public colorPickerIsMagicMug: Observable<Boolean>;
+  public temperatureMagicMug: Observable<Number>;
 
   public selectedModel: Observable<any>;
   public imagePrinting: Observable<String>;
@@ -78,6 +80,20 @@ export class ModelViewerComponent implements AfterViewInit {
     roughness: 0,
   });
 
+  private toogleMeshBody: THREE.Mesh | undefined;
+  private toogleMeshBase: THREE.Mesh | undefined;
+
+  private isMagicMug: Boolean | undefined;
+
+  private mugShaderMaterial = new THREE.MeshStandardMaterial({
+    color: 0x000000,
+    metalness: 0,
+    roughness: 0,
+    transparent: false
+  });
+
+  private mugSublimationPrintingMaterial: THREE.MeshStandardMaterial | any;
+
   constructor(
     private window: Window,
     private router: Router,
@@ -92,6 +108,8 @@ export class ModelViewerComponent implements AfterViewInit {
     this.colorPickerHandle = this.colorsModelsService.getColorHandle;
     this.colorPickerInside = this.colorsModelsService.getColorInside;
     this.colorPickerBase = this.colorsModelsService.getColorBase;
+    this.colorPickerIsMagicMug = this.colorsModelsService.getIsMagicMug;
+    this.temperatureMagicMug = this.colorsModelsService.getTempMug;
 
     this.selectedModel = models3dService.getSelectedModel;
     this.imagePrinting = imagesPrintingService.getImage;
@@ -196,6 +214,7 @@ export class ModelViewerComponent implements AfterViewInit {
       node.receiveShadow = true;
 
       if (node.isMesh && node.name === "Body") {
+        this.toogleMeshBody = node;
         node.material = this.bodyMaterial;
       } else if (node.isMesh && node.name === "Ring") {
         node.material = this.ringMaterial;
@@ -204,6 +223,7 @@ export class ModelViewerComponent implements AfterViewInit {
       } else if (node.isMesh && node.name === "Inside") {
         node.material = this.insideMaterial;
       } else if (node.isMesh && node.name === "Base") {
+        this.toogleMeshBase = node;
         node.material = this.baseMaterial;
       }
     });
@@ -213,9 +233,6 @@ export class ModelViewerComponent implements AfterViewInit {
       this.lastImagePrinting = imagePrinting;
       room3DModel.add(imagePrinting)
     }
-    //  else {
-    //   if (this.lastImagePrinting) this.removeSublimationPrinting(room3DModel, this.lastImagePrinting);
-    // }
 
     return room3DModel;
   }
@@ -253,6 +270,65 @@ export class ModelViewerComponent implements AfterViewInit {
     this.colorPickerBase.subscribe((value: any) => {
       this.baseMaterial.color.set(value);
     });
+
+    this.colorPickerIsMagicMug.subscribe((value: any) => {
+      this.isMagicMug = value;
+      this.setMagicMug();
+    });
+  }
+
+  createGradientTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const context = canvas.getContext('2d')!;
+
+    const gradient = context.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, '#000000'); // Negro arriba
+    gradient.addColorStop(1, '#ffffff'); // Blanco abajo
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 256, 256);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  setMagicMug() {
+    if (this.isMagicMug) {
+      this.colorsModelsService.setColorBase = "#000000";
+      this.colorsModelsService.setColorHandle = "#000000";
+      this.colorsModelsService.setColorBody = "#ffffff";
+      if (this.toogleMeshBody && this.toogleMeshBase) {
+        this.toogleMeshBody.material = this.mugShaderMaterial;
+        this.toogleMeshBase.material = this.mugShaderMaterial;
+      }
+      // Animación de negro a blanco
+      const targetColor = new THREE.Color(0xffffff);
+      const startColor = new THREE.Color(0x000000);
+
+      const este = this;
+      this.temperatureMagicMug.subscribe({
+        next(value: any) {
+          const temp: any = value / 100;
+          este.mugShaderMaterial.color.lerpColors(startColor, targetColor, temp);
+          este.mugShaderMaterial.needsUpdate = true;
+          este.mugSublimationPrintingMaterial.opacity = temp;
+        },
+      })
+
+    } else {
+      if (this.toogleMeshBody && this.toogleMeshBase) {
+        this.toogleMeshBody.material = this.bodyMaterial;
+        this.toogleMeshBase.material = this.baseMaterial;
+      }
+      this.colorsModelsService.setColorBase = "#ffffff";
+      this.colorsModelsService.setColorHandle = "#ffffff";
+
+      this.mugShaderMaterial.color.set(0x000000);
+      this.mugShaderMaterial.needsUpdate = true;
+    }
+
   }
 
   async reloadModel(room3DModel: any, scene: any) {
@@ -276,17 +352,18 @@ export class ModelViewerComponent implements AfterViewInit {
       if (this.imageSelected === '') resolve(null);
 
       loaderImagePrinting.load(this.imageSelected,
-        function (texture) {
+        (texture) => {
 
           texture.colorSpace = THREE.SRGBColorSpace;
           texture.wrapS = THREE.ClampToEdgeWrapping;
           texture.wrapT = THREE.ClampToEdgeWrapping;
 
-          const material = new THREE.MeshStandardMaterial(
+          this.mugSublimationPrintingMaterial = new THREE.MeshStandardMaterial(
             {
               map: texture,
               transparent: true,
-              side: THREE.DoubleSide
+              side: THREE.DoubleSide,
+              opacity: this.isMagicMug ? 0.5 : 1
             });
 
           const radius = 41.3;
@@ -295,10 +372,10 @@ export class ModelViewerComponent implements AfterViewInit {
           const opening = THREE.MathUtils.degToRad(77.4);
           const geometry = new THREE.CylinderGeometry(radius, radius, height, 64, 1, true, THREE.MathUtils.degToRad(129.2), 2 * Math.PI - opening);
 
-          const mesh = new THREE.Mesh(geometry, material);
+          const mesh = new THREE.Mesh(geometry, this.mugSublimationPrintingMaterial);
           mesh.name = "sublimation-printing";
           mesh.rotation.y = Math.PI;
-          mesh.position.set(0, (height / 2) + 2.5, 0);
+          mesh.position.set(0, (height / 2) + 2.6, 0);
           resolve(mesh);
         }
       );

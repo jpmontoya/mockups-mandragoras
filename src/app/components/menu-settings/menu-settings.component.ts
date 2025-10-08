@@ -20,6 +20,9 @@ import { FieldsetModule } from 'primeng/fieldset';
 import * as THREE from 'three';
 import { PreviewService } from '../../services/preview/preview.service';
 import { LoaderService } from '../../services/loader/loader.service';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TooltipModule } from 'primeng/tooltip';
+import { SliderModule } from 'primeng/slider';
 
 interface Categories {
   name: string;
@@ -44,7 +47,10 @@ interface Categories {
     ProgressBarModule,
     SplitButtonModule,
     ColorPickerModule,
-    FieldsetModule
+    FieldsetModule,
+    ToggleSwitchModule,
+    TooltipModule,
+    SliderModule
   ],
   templateUrl: './menu-settings.component.html',
   styleUrl: './menu-settings.component.css',
@@ -60,6 +66,7 @@ export class MenuSettingsComponent implements OnInit {
   public colorPickerHandle: Observable<String>;
   public colorPickerInside: Observable<String>;
   public colorPickerBase: Observable<String>;
+  public isMagicMug: boolean = false;
 
   public isDragOver: boolean = false;
   uploadedImageUrl: string | null = null;
@@ -266,6 +273,15 @@ export class MenuSettingsComponent implements OnInit {
     } catch (error) {
       console.error('Error downloading preview:', error);
     }
+  }
+
+  changeTempMagicMug(event: any) {
+    this.colorsModelsService.setTempMug = event.value;
+  }
+
+  toggleIsMagicMug(event: any) {
+    this.colorsModelsService.setIsMagicMug = event.checked;
+    this.isMagicMug = event.checked;
   }
 
   private drawTexts(ctx: CanvasRenderingContext2D, size: number, quality: number) {
