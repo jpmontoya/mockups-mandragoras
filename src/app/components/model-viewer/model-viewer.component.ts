@@ -150,6 +150,7 @@ export class ModelViewerComponent implements AfterViewInit {
     this.previewCameras.forEach((cam: any) => cam.lookAt(0, 0, 0));
 
     this.previewService.setPreviewCameras = this.previewCameras;
+    this.previewService.setPrimaryCamera = this.primaryCamera;
 
     return {
       scene

@@ -23,6 +23,7 @@ import { LoaderService } from '../../services/loader/loader.service';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { SliderModule } from 'primeng/slider';
+import GIF from 'gif.js';
 
 interface Categories {
   name: string;
@@ -100,27 +101,9 @@ export class MenuSettingsComponent implements OnInit {
 
     this.downloadOptions = [
       {
-        label: 'Frontal',
-        disabled: true,
+        label: 'Descargar video',
         command: () => {
-        }
-      },
-      {
-        label: 'Posterior',
-        disabled: true,
-        command: () => {
-        }
-      },
-      {
-        label: 'Isométrica',
-        disabled: true,
-        command: () => {
-        }
-      },
-      {
-        label: 'Lateral',
-        disabled: true,
-        command: () => {
+          this.downloadVideoPreview()
         }
       }
     ]
@@ -273,6 +256,131 @@ export class MenuSettingsComponent implements OnInit {
     } catch (error) {
       console.error('Error downloading preview:', error);
     }
+  }
+
+  async downloadVideoPreview() {
+    let renderer: THREE.WebGLRenderer | any = null;
+
+    try {
+      const [scene, primaryCamera] = await Promise.all([
+        new Promise<any>((resolve) => this.previewService.getScene.subscribe(resolve)),
+        new Promise<any>((resolve) => this.previewService.getPrimaryCamera.subscribe(resolve))
+      ]);
+
+      if (!scene || !primaryCamera) return;
+
+      renderer = new THREE.WebGLRenderer({
+        preserveDrawingBuffer: true,
+        antialias: true,
+        powerPreference: 'high-performance',
+        precision: "highp"
+      });
+
+      const size = 1080;
+      renderer.setSize(size, size);
+      renderer.setClearColor(0x656c77, 1);
+      renderer.autoClear = true;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      const stream = canvas.captureStream(60);
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm; codecs=vp9',
+        videoBitsPerSecond: 8000000
+      });
+
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `mug-preview-${Date.now()}.webm`;
+        link.click();
+        URL.revokeObjectURL(url);
+        renderer.dispose();
+        renderer.forceContextLoss();
+        renderer = null;
+      };
+
+      recorder.start();
+
+      let frameCount = 0;
+      const totalFrames = 360;
+
+      const initialPosition = new THREE.Vector3(0, 300, 450);
+      const initialRadius = Math.sqrt(initialPosition.x ** 2 + initialPosition.z ** 2);
+      const initialAngle = Math.atan2(initialPosition.z, initialPosition.x);
+
+
+      const recordFrame = () => {
+        if (frameCount >= totalFrames) {
+          recorder.stop();
+          return;
+        }
+
+        ctx.fillStyle = '#1e2939';
+        ctx.fillRect(0, 0, size, size);
+
+        const camera = primaryCamera;
+        if (camera) {
+          if (this.isMagicMug) {
+            this.changeTempMagicMug({ value: (frameCount / totalFrames) * 100 })
+          }
+          const angle = initialAngle + (frameCount / totalFrames) * Math.PI * 2;
+
+          const x = Math.cos(angle) * initialRadius;
+          const z = Math.sin(angle) * initialRadius;
+          const y = initialPosition.y;
+
+          camera.position.set(x, y, z);
+          camera.lookAt(0, 0, 0);
+          camera.updateMatrixWorld();
+
+          renderer.render(scene, camera);
+          ctx.drawImage(renderer.domElement, 0, 0, size, size);
+        }
+
+        frameCount++;
+        setTimeout(recordFrame, 1000 / 60);
+      };
+
+      recordFrame();
+
+    } catch (error) {
+      if (renderer) {
+        renderer.dispose();
+        renderer = null;
+      }
+      console.error('Error recording video:', error);
+    }
+  }
+
+  private applyFrameAnimation(scene: THREE.Scene, cameras: THREE.Camera[], frame: number, totalFrames: number) {
+    const progress = frame / totalFrames;
+    const angle = progress * Math.PI * 2; // Rotación completa
+
+    cameras.forEach((camera, index) => {
+      if (camera instanceof THREE.PerspectiveCamera) {
+        // Rotar alrededor del objeto
+        const radius = 200;
+        const x = Math.cos(angle + index * Math.PI / 2) * radius;
+        const z = Math.sin(angle + index * Math.PI / 2) * radius;
+
+        camera.position.set(x, camera.position.y, z);
+        camera.lookAt(0, 0, 0);
+      }
+    });
   }
 
   changeTempMagicMug(event: any) {

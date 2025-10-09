@@ -7,6 +7,7 @@ import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 export class PreviewService {
   private scene: BehaviorSubject<any> = new BehaviorSubject<any>(undefined);
   private previewCameras: BehaviorSubject<any[]> = new BehaviorSubject<any>([]);
+  private primaryCamera: BehaviorSubject<any> = new BehaviorSubject<any>(undefined);
 
   constructor() { }
 
@@ -24,5 +25,13 @@ export class PreviewService {
 
   get getPreviewCameras() {
     return this.previewCameras.asObservable();
+  }
+
+  set setPrimaryCamera(primaryCamera: any) {
+    this.primaryCamera.next(primaryCamera)
+  }
+
+  get getPrimaryCamera() {
+    return this.primaryCamera.asObservable();
   }
 }
